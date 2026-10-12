@@ -40,11 +40,11 @@ export default function GameRootPage() {
     user: null,
   });
 
-  // Keep the cinematic intro visible for at least 8 seconds.
+  // Keep a brief intro, but never make players wait through a fixed cinematic delay.
   const [minimumLoadingComplete, setMinimumLoadingComplete] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setMinimumLoadingComplete(true), 8000);
+    const timer = window.setTimeout(() => setMinimumLoadingComplete(true), 900);
     return () => window.clearTimeout(timer);
   }, []);
 
