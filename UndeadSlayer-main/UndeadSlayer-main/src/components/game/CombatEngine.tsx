@@ -118,6 +118,13 @@ function resolveObstacleCollision(pos: { x: number; y: number }, radius: number,
   }
 }
 
+/**
+ * Gameplay randomness (crit rolls, spawn positions, particle jitter, AI picks).
+ * Lives at module scope on purpose: it is only ever called from event handlers
+ * and the requestAnimationFrame loop, never while React renders the component.
+ */
+const rand = (): number => Math.random();
+
 export default function CombatEngine({
   heroId, chapterId, levelNumber, statUpgrades, equippedStats,
   healthPotions: initialPotions, settings, onBattleEnd, onExit,
@@ -186,7 +193,7 @@ export default function CombatEngine({
     keys: { up: false, down: false, left: false, right: false, attack: false },
     joystick: { active: false, angle: 0, power: 0 },
     shakeTime: 0,
-    lastTime: performance.now(),
+    lastTime: 0,
     potionsUsed: 0,
     room: 1,
     roomCleared: false,
@@ -233,24 +240,24 @@ export default function CombatEngine({
   const impact = (x: number, y: number, color: string, count: number): Particle[] => {
     const res: Particle[] = [];
     for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const sp = Math.random() * 4 + 1.4;
-      res.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, color, radius: Math.random() * 3.4 + 1.8, life: 0.42 + Math.random() * 0.3, maxLife: 0.72 });
+      const a = rand() * Math.PI * 2;
+      const sp = rand() * 4 + 1.4;
+      res.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, color, radius: rand() * 3.4 + 1.8, life: 0.42 + rand() * 0.3, maxLife: 0.72 });
     }
     return res;
   };
 
   const dropPickups = (x: number, y: number, boss: boolean, elite: boolean) => {
     const s = stateRef.current;
-    const coinCount = boss ? 14 : elite ? 6 : Math.random() < 0.72 ? 1 + Math.floor(Math.random() * 2) : 0;
+    const coinCount = boss ? 14 : elite ? 6 : rand() < 0.72 ? 1 + Math.floor(rand() * 2) : 0;
     for (let i = 0; i < coinCount; i++) {
-      s.pickups.push({ x: x + (Math.random() - 0.5) * 46, y: y + (Math.random() - 0.5) * 30, kind: "coin", bob: Math.random() * 6, life: 26 });
+      s.pickups.push({ x: x + (rand() - 0.5) * 46, y: y + (rand() - 0.5) * 30, kind: "coin", bob: rand() * 6, life: 26 });
     }
-    if (Math.random() < (boss ? 1 : elite ? 0.7 : 0.3)) {
-      s.pickups.push({ x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 24, kind: "energy", bob: Math.random() * 6, life: 26 });
+    if (rand() < (boss ? 1 : elite ? 0.7 : 0.3)) {
+      s.pickups.push({ x: x + (rand() - 0.5) * 30, y: y + (rand() - 0.5) * 24, kind: "energy", bob: rand() * 6, life: 26 });
     }
-    if (Math.random() < (boss ? 0.9 : elite ? 0.35 : 0.1)) {
-      s.pickups.push({ x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 24, kind: "heart", bob: Math.random() * 6, life: 26 });
+    if (rand() < (boss ? 0.9 : elite ? 0.35 : 0.1)) {
+      s.pickups.push({ x: x + (rand() - 0.5) * 30, y: y + (rand() - 0.5) * 24, kind: "heart", bob: rand() * 6, life: 26 });
     }
   };
 
@@ -258,7 +265,7 @@ export default function CombatEngine({
     if (enemy.dying) return; // corpses can't be hit
     const s = stateRef.current;
     const crit = Math.min(0.9, heroCritRate + s.buffs.crit);
-    const isCrit = canCrit && Math.random() < crit;
+    const isCrit = canCrit && rand() < crit;
     const dmg = Math.max(8, Math.round(baseDamage * (isCrit ? 1.85 : 1) * (1 - Math.min(0.4, enemy.isBoss ? 0.25 : 0.08))));
     enemy.hp -= dmg;
     enemy.hitFlash = 0.16;
@@ -272,7 +279,7 @@ export default function CombatEngine({
     if (settings.damageNumbers) {
       s.damageNumbers.push({
         text: `${dmg}${isCrit ? "!" : ""}`,
-        x: enemy.x + (Math.random() - 0.5) * 20,
+        x: enemy.x + (rand() - 0.5) * 20,
         y: enemy.y - enemy.radius - 18,
         vy: -2.1, opacity: 1, color: isCrit ? "#fbbf24" : "#ffffff", isCrit,
       });
@@ -308,19 +315,19 @@ export default function CombatEngine({
     const s = stateRef.current;
     const pool = levelDef.enemyTypes.length ? levelDef.enemyTypes : ["zombie"];
     for (let i = 0; i < count; i++) {
-      const key = pool[Math.floor(Math.random() * pool.length)];
+      const key = pool[Math.floor(rand() * pool.length)];
       const data = ENEMY_TYPES[key] || ENEMY_TYPES.zombie;
       const hp = Math.round(data.baseHp * (1 + chapterId * 0.3) * (elite ? 2.4 : 1));
       s.enemies.push({
-        id: Math.random(), typeKey: key, name: elite ? "Shadow Clone" : data.name,
+        id: rand(), typeKey: key, name: elite ? "Shadow Clone" : data.name,
         avatar: data.avatar, image: data.image, sprite: { ...data.sprite, scale: elite ? data.sprite.scale + 1 : data.sprite.scale },
-        x: from.x + (Math.random() - 0.5) * 180, y: from.y + (Math.random() - 0.5) * 100,
+        x: from.x + (rand() - 0.5) * 180, y: from.y + (rand() - 0.5) * 100,
         hp, maxHp: hp, atk: Math.round(data.baseAtk * (1 + chapterId * 0.25) * (elite ? 1.4 : 1)),
         speed: data.speed * (elite ? 1.25 : 1), color: elite ? "#a855f7" : data.color,
         radius: data.sprite.scale * (elite ? 3.6 : 3.1), attackRange: data.attackRange,
         isBoss: false, isElite: elite, bossPhase: 0, isRanged: data.isRanged,
         attackCooldown: 1.1, specialTimer: elite ? 4 : 99, chargeTimer: 0,
-        hitFlash: 0, facingLeft: true, animTick: Math.random() * 8, attackT: 0, moving: false, casting: false,
+        hitFlash: 0, facingLeft: true, animTick: rand() * 8, attackT: 0, moving: false, casting: false,
       });
     }
     setEliteCount(s.enemies.filter((e) => e.isElite).length);
@@ -329,8 +336,8 @@ export default function CombatEngine({
   const addZones = (count: number, radius: number, windup: number, damage: number, color: string, label: string, atHero: boolean) => {
     const s = stateRef.current;
     for (let i = 0; i < count; i++) {
-      const tx = atHero ? s.hero.x + (i === 0 ? 0 : (Math.random() - 0.5) * 280) : ARENA.minX + 70 + Math.random() * (ARENA.maxX - ARENA.minX - 140);
-      const ty = atHero ? s.hero.y + (i === 0 ? 0 : (Math.random() - 0.5) * 170) : ARENA.minY + 40 + Math.random() * (ARENA.maxY - ARENA.minY - 80);
+      const tx = atHero ? s.hero.x + (i === 0 ? 0 : (rand() - 0.5) * 280) : ARENA.minX + 70 + rand() * (ARENA.maxX - ARENA.minX - 140);
+      const ty = atHero ? s.hero.y + (i === 0 ? 0 : (rand() - 0.5) * 170) : ARENA.minY + 40 + rand() * (ARENA.maxY - ARENA.minY - 80);
       s.zones.push({
         x: Math.max(ARENA.minX, Math.min(ARENA.maxX, tx)),
         y: Math.max(ARENA.minY, Math.min(ARENA.maxY, ty)),
@@ -341,7 +348,7 @@ export default function CombatEngine({
 
   const radialBurst = (from: EnemyEntity, count: number, speed: number, damage: number, color: string) => {
     const s = stateRef.current;
-    const off = Math.random() * Math.PI;
+    const off = rand() * Math.PI;
     for (let i = 0; i < count; i++) {
       const a = off + (i * Math.PI * 2) / count;
       s.bullets.push({ x: from.x, y: from.y - 24, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, damage, radius: 8, color, isHero: false, type: "orb", duration: 3.4 });
@@ -352,7 +359,7 @@ export default function CombatEngine({
 
   const spiralBurst = (from: EnemyEntity, shots: number, speed: number, damage: number, color: string) => {
     const s = stateRef.current;
-    let a = Math.random() * Math.PI * 2;
+    let a = rand() * Math.PI * 2;
     for (let i = 0; i < shots; i++) {
       setTimeout(() => {
         if (from.hp <= 0) return;
@@ -392,13 +399,13 @@ export default function CombatEngine({
       s.hero.armor -= absorbed;
       dmg -= absorbed;
       s.particles.push(...impact(s.hero.x, s.hero.y - 30, "#60a5fa", 10));
-      s.damageNumbers.push({ text: `🛡${absorbed}`, x: s.hero.x + (Math.random() - 0.5) * 18, y: s.hero.y - 56, vy: -2, opacity: 1, color: "#60a5fa", isCrit: false });
+      s.damageNumbers.push({ text: `🛡${absorbed}`, x: s.hero.x + (rand() - 0.5) * 18, y: s.hero.y - 56, vy: -2, opacity: 1, color: "#60a5fa", isCrit: false });
       sounds.playHit();
     }
     if (dmg > 0) {
       s.hero.hp = Math.max(0, s.hero.hp - dmg);
       sounds.playHit();
-      s.damageNumbers.push({ text: `-${dmg}`, x: s.hero.x + (Math.random() - 0.5) * 16, y: s.hero.y - 46, vy: -2, opacity: 1, color: "#ef4444", isCrit: false });
+      s.damageNumbers.push({ text: `-${dmg}`, x: s.hero.x + (rand() - 0.5) * 16, y: s.hero.y - 46, vy: -2, opacity: 1, color: "#ef4444", isCrit: false });
       s.particles.push(...impact(s.hero.x, s.hero.y - 26, "#ef4444", 10));
     }
   };
@@ -439,8 +446,8 @@ export default function CombatEngine({
     } else if (key === "demon_king") {
       pool.push(() => {
         s.particles.push(...impact(en.x, en.y - 28, "#f97316", 24));
-        en.x = Math.max(ARENA.minX + 40, Math.min(ARENA.maxX - 40, s.hero.x + (Math.random() > 0.5 ? 160 : -160)));
-        en.y = Math.max(ARENA.minY + 30, Math.min(ARENA.maxY - 30, s.hero.y + (Math.random() - 0.5) * 110));
+        en.x = Math.max(ARENA.minX + 40, Math.min(ARENA.maxX - 40, s.hero.x + (rand() > 0.5 ? 160 : -160)));
+        en.y = Math.max(ARENA.minY + 30, Math.min(ARENA.maxY - 30, s.hero.y + (rand() - 0.5) * 110));
         s.particles.push(...impact(en.x, en.y - 28, "#fbbf24", 24));
         radialBurst(en, 16, 3.6, dmg, "#fb923c");
       });
@@ -519,7 +526,7 @@ export default function CombatEngine({
     } else if (t === "arrow_rain") {
       for (let i = 0; i < 20; i++) {
         setTimeout(() => {
-          s.bullets.push({ x: hero.x + (Math.random() - 0.5) * 400, y: hero.y - 330, vx: 0, vy: 12.5, damage: Math.round(dmg / 4), radius: 9, color: heroDef.accentColor, isHero: true, type: "arrow", duration: 1.1 });
+          s.bullets.push({ x: hero.x + (rand() - 0.5) * 400, y: hero.y - 330, vx: 0, vy: 12.5, damage: Math.round(dmg / 4), radius: 9, color: heroDef.accentColor, isHero: true, type: "arrow", duration: 1.1 });
         }, i * 38);
       }
     } else if (t === "furious_combo") {
@@ -570,9 +577,9 @@ export default function CombatEngine({
       });
       s.bullets.forEach((b) => { if (!b.isHero) b.duration = 0; }); // clears enemy bullets
       for (let i = 0; i < 36; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const d = Math.random() * 220;
-        s.particles.push({ x: hero.x + Math.cos(a) * d, y: hero.y + Math.sin(a) * d * 0.5, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 3.6, color: "#facc15", radius: 5, life: 0.7, maxLife: 0.7 });
+        const a = rand() * Math.PI * 2;
+        const d = rand() * 220;
+        s.particles.push({ x: hero.x + Math.cos(a) * d, y: hero.y + Math.sin(a) * d * 0.5, vx: (rand() - 0.5) * 3, vy: -rand() * 3.6, color: "#facc15", radius: 5, life: 0.7, maxLife: 0.7 });
       }
     } else if (t === "thorn_heal") {
       sounds.playPotion();
@@ -605,7 +612,7 @@ export default function CombatEngine({
       const dir = hero.facingLeft ? -1 : 1;
       for (let i = 0; i < 22; i++) {
         setTimeout(() => {
-          s.bullets.push({ x: hero.x + dir * i * 22, y: hero.y - 30 + (Math.random() - 0.5) * 56, vx: dir * 7.4, vy: (Math.random() - 0.5) * 2.4, damage: dmg / 2.4, radius: 20, color: i % 3 === 0 ? "#fbbf24" : "#f97316", isHero: true, type: "fire", duration: 0.9 });
+          s.bullets.push({ x: hero.x + dir * i * 22, y: hero.y - 30 + (rand() - 0.5) * 56, vx: dir * 7.4, vy: (rand() - 0.5) * 2.4, damage: dmg / 2.4, radius: 20, color: i % 3 === 0 ? "#fbbf24" : "#f97316", isHero: true, type: "fire", duration: 0.9 });
         }, i * 26);
       }
     }
@@ -618,7 +625,7 @@ export default function CombatEngine({
     }
   }, [heroDef, skillMultiplier, gameOver, blessingOptions]);
 
-  const useHealthPotion = useCallback(() => {
+  const drinkHealthPotion = useCallback(() => {
     const s = stateRef.current;
     if (potionsCount <= 0 || s.hero.hp >= heroMaxHpNow() || gameOver || blessingOptions) return;
     sounds.playPotion();
@@ -637,7 +644,7 @@ export default function CombatEngine({
     const picks: Blessing[] = [];
     const pool = [...BLESSINGS];
     for (let i = 0; i < 3 && pool.length; i++) {
-      picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      picks.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
     }
     setBlessingOptions(picks);
   }, []);
@@ -700,7 +707,7 @@ export default function CombatEngine({
       sounds.playBossRoar();
       say(`${bossDef.name.toUpperCase()} — ${bossDef.title.toUpperCase()}`, 3600);
       const boss: EnemyEntity = {
-        id: Math.random(), typeKey: bossDef.key, name: bossDef.name, avatar: bossDef.avatar,
+        id: rand(), typeKey: bossDef.key, name: bossDef.name, avatar: bossDef.avatar,
         image: bossDef.image,
         sprite: bossDef.sprite, x: 720, y: 340,
         hp: bossDef.hp, maxHp: bossDef.hp, atk: bossDef.atk, speed: bossDef.spd,
@@ -717,34 +724,34 @@ export default function CombatEngine({
 
     const count = levelDef.enemiesPerWave + Math.floor(room * 1.15);
     for (let i = 0; i < count; i++) {
-      const key = levelDef.enemyTypes[Math.floor(Math.random() * levelDef.enemyTypes.length)];
+      const key = levelDef.enemyTypes[Math.floor(rand() * levelDef.enemyTypes.length)];
       const data = ENEMY_TYPES[key] || ENEMY_TYPES.zombie;
-      const side = Math.random();
-      const x = side > 0.5 ? ARENA.maxX - 20 - Math.random() * 120 : ARENA.minX + 160 + Math.random() * 220;
-      const y = ARENA.minY + 24 + Math.random() * (ARENA.maxY - ARENA.minY - 48);
+      const side = rand();
+      const x = side > 0.5 ? ARENA.maxX - 20 - rand() * 120 : ARENA.minX + 160 + rand() * 220;
+      const y = ARENA.minY + 24 + rand() * (ARENA.maxY - ARENA.minY - 48);
       const hp = Math.round(data.baseHp * (1 + chapterId * 0.3 + levelNumber * 0.1));
       s.enemies.push({
-        id: Math.random(), typeKey: key, name: data.name, avatar: data.avatar, image: data.image, sprite: data.sprite,
+        id: rand(), typeKey: key, name: data.name, avatar: data.avatar, image: data.image, sprite: data.sprite,
         x, y, hp, maxHp: hp,
         atk: Math.round(data.baseAtk * (1 + chapterId * 0.26 + levelNumber * 0.08)),
         speed: data.speed, color: data.color, radius: data.sprite.scale * 3.1,
         attackRange: data.attackRange, isBoss: false, isElite: false, bossPhase: 0,
-        isRanged: data.isRanged, attackCooldown: 1.1 + Math.random() * 0.6,
+        isRanged: data.isRanged, attackCooldown: 1.1 + rand() * 0.6,
         specialTimer: 99, chargeTimer: 0, hitFlash: 0, facingLeft: x > 400,
-        animTick: Math.random() * 8, attackT: 0, moving: false, casting: false,
+        animTick: rand() * 8, attackT: 0, moving: false, casting: false,
       });
     }
 
     // elite champion guard in later rooms
     if (room >= 2) {
-      const eKey = levelDef.eliteTypes.length ? levelDef.eliteTypes[Math.floor(Math.random() * levelDef.eliteTypes.length)] : levelDef.enemyTypes[0];
+      const eKey = levelDef.eliteTypes.length ? levelDef.eliteTypes[Math.floor(rand() * levelDef.eliteTypes.length)] : levelDef.enemyTypes[0];
       const data = ENEMY_TYPES[eKey] || ENEMY_TYPES.zombie;
       const hp = Math.round(data.baseHp * (1 + chapterId * 0.3 + levelNumber * 0.1) * 4.2);
       s.enemies.push({
-        id: Math.random(), typeKey: eKey, name: `Elite ${data.name}`, avatar: data.avatar,
+        id: rand(), typeKey: eKey, name: `Elite ${data.name}`, avatar: data.avatar,
         image: data.image,
         sprite: { ...data.sprite, scale: data.sprite.scale + 2 },
-        x: ARENA.maxX - 90, y: ARENA.minY + 60 + Math.random() * (ARENA.maxY - ARENA.minY - 120),
+        x: ARENA.maxX - 90, y: ARENA.minY + 60 + rand() * (ARENA.maxY - ARENA.minY - 120),
         hp, maxHp: hp,
         atk: Math.round(data.baseAtk * (1 + chapterId * 0.26 + levelNumber * 0.08) * 1.5),
         speed: data.speed * 1.1, color: "#fb923c", radius: (data.sprite.scale + 2) * 3.2,
@@ -773,6 +780,7 @@ export default function CombatEngine({
 
     let animId = 0;
     const s0 = stateRef.current;
+    s0.lastTime = performance.now();
     if (s0.enemies.length === 0 && !s0.battleResolved && s0.room === 1) spawnRoom(1);
 
     const down = (e: KeyboardEvent) => {
@@ -784,7 +792,7 @@ export default function CombatEngine({
       if (e.key === "j" || e.key === " " || e.key === "x") { k.attack = true; e.preventDefault(); }
       if (e.key === "k" || e.key === "c") triggerHeroSkill();
       if (e.key === "l" || e.key === "Shift") doDash();
-      if (e.key === "q" || e.key === "h") useHealthPotion();
+      if (e.key === "q" || e.key === "h") drinkHealthPotion();
       if (e.key === "m") setShowBigMap((v) => !v);
       if (e.key === "p" || e.key === "Escape") setIsPaused((v) => !v);
     };
@@ -905,7 +913,7 @@ export default function CombatEngine({
                 ay = Math.sin(a);
                 hero.facingLeft = target.x < hero.x;
               }
-              const spread = (Math.random() - 0.5) * 0.05;
+              const spread = (rand() - 0.5) * 0.05;
               const a2 = Math.atan2(ay, ax) + spread;
               s.bullets.push({
                 x: hero.x + ax * 16, y: hero.y - 30,
@@ -1156,7 +1164,7 @@ export default function CombatEngine({
       ctx.clearRect(0, 0, ARENA.w, ARENA.h);
       if (settings.screenShake && s.shakeTime > 0) {
         const m = s.shakeTime * 15;
-        ctx.translate((Math.random() - 0.5) * m, (Math.random() - 0.5) * m);
+        ctx.translate((rand() - 0.5) * m, (rand() - 0.5) * m);
       }
 
       drawRoom(ctx);
@@ -1610,7 +1618,7 @@ export default function CombatEngine({
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [isPaused, gameOver, blessingOptions, showBigMap, settings, heroDef, chapter, chapterId, levelDef, levelNumber, bossDef, totalRooms, spawnRoom, nextRoom, triggerHeroSkill, useHealthPotion, doDash, offerBlessing, onBattleEnd]);
+  }, [isPaused, gameOver, blessingOptions, showBigMap, settings, heroDef, chapter, chapterId, levelDef, levelNumber, bossDef, totalRooms, spawnRoom, nextRoom, triggerHeroSkill, drinkHealthPotion, doDash, offerBlessing, onBattleEnd]);
 
   /* ---------------- touch controls ---------------- */
 
@@ -1881,7 +1889,7 @@ export default function CombatEngine({
         {/* action buttons */}
         <div className="flex items-end gap-2.5 shrink-0">
           <button
-            onClick={useHealthPotion}
+            onClick={drinkHealthPotion}
             disabled={potionsCount <= 0 || hp >= maxHpUi}
             className="btn-3d relative w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-b from-red-800 to-red-950 border-2 border-red-600/60 text-red-200 flex flex-col items-center justify-center px-3 py-3"
           >
