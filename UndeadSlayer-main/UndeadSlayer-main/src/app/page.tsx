@@ -66,7 +66,7 @@ export default function GameRootPage() {
   useEffect(() => {
     async function checkSession() {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
         if (data.authenticated && data.user) {
           setAuthState({ loaded: true, authenticated: true, user: data.user });
