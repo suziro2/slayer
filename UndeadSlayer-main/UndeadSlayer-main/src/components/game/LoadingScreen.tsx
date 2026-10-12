@@ -53,7 +53,7 @@ export default function LoadingScreen() {
         <p className="realm-loader__status"><span className="realm-loader__pulse" /> Restoring your adventure</p>
         <div className="realm-loader__progress" aria-hidden="true"><span /></div>
         <div className="realm-loader__footer">
-          <span>10 HERO CLASSES</span><i>◆</i><span>25 STAGES</span><i>◆</i><span>5 CHAPTERS</span>
+          <span>10 HEROES</span><i>◆</i><span>50 STAGES</span><i>◆</i><span>10 CHAPTERS</span>
         </div>
       </section>
       <span className="realm-loader__version">PREPARE FOR THE HUNT</span>
