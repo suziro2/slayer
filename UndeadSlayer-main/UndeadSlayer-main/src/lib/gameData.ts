@@ -481,11 +481,11 @@ export const CHAPTERS: ChapterDef[] = [
     arenaPalette: ["#15301f", "#1d4028", "#0b1a11", "#2f6b3d", "#3f8a4a", "#58a860"],
     terrainKind: "tree",
     levels: [
-      { levelNumber: 1, title: "Poison Path Entrance", waveCount: 3, enemiesPerWave: 5, enemyTypes: ["goblin", "corrupted_wolf"], eliteTypes: ["goblin"], rewardCoins: 160, rewardXp: 210, isBossLevel: false },
+      { levelNumber: 1, title: "Poison Path Entrance", waveCount: 3, enemiesPerWave: 5, enemyTypes: ["goblin", "cursed_wolf"], eliteTypes: ["goblin"], rewardCoins: 160, rewardXp: 210, isBossLevel: false },
       { levelNumber: 2, title: "Murky Bog", waveCount: 4, enemiesPerWave: 5, enemyTypes: ["poisonous_creature", "forest_spirit"], eliteTypes: ["poisonous_creature"], rewardCoins: 190, rewardXp: 250, isBossLevel: false },
       { levelNumber: 3, title: "Ancient Canopy", waveCount: 4, enemiesPerWave: 6, enemyTypes: ["goblin", "poisonous_creature", "forest_spirit"], eliteTypes: ["forest_spirit"], rewardCoins: 230, rewardXp: 300, isBossLevel: false },
-      { levelNumber: 4, title: "Deep Briar Thicket", waveCount: 4, enemiesPerWave: 7, enemyTypes: ["corrupted_wolf", "forest_spirit", "goblin"], eliteTypes: ["corrupted_wolf"], rewardCoins: 280, rewardXp: 360, isBossLevel: false },
-      { levelNumber: 5, title: "Heart of the Elder Grove", waveCount: 2, enemiesPerWave: 4, enemyTypes: ["forest_spirit", "corrupted_wolf"], eliteTypes: ["forest_spirit"], rewardCoins: 600, rewardXp: 750, isBossLevel: true },
+      { levelNumber: 4, title: "Deep Briar Thicket", waveCount: 4, enemiesPerWave: 7, enemyTypes: ["cursed_wolf", "forest_spirit", "goblin"], eliteTypes: ["cursed_wolf"], rewardCoins: 280, rewardXp: 360, isBossLevel: false },
+      { levelNumber: 5, title: "Heart of the Elder Grove", waveCount: 2, enemiesPerWave: 4, enemyTypes: ["forest_spirit", "cursed_wolf"], eliteTypes: ["forest_spirit"], rewardCoins: 600, rewardXp: 750, isBossLevel: true },
     ],
     boss: {
       key: "forest_guardian",
